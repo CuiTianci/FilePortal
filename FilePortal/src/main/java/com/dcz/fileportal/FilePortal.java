@@ -49,8 +49,6 @@ import static com.dcz.fileportal.Constants.NET_KEY_SIGNATURE;
 import static com.dcz.fileportal.Constants.NET_KEY_TOKEN;
 import static com.dcz.fileportal.Constants.NET_KEY_UID;
 import static com.dcz.fileportal.Constants.RET_SUCCESS;
-import static com.dcz.fileportal.options.AccessOption.ACCESS_VERIFY;
-import static com.dcz.fileportal.options.ModeOption.MODE_STAY;
 
 /**
  * 文件传送门。
@@ -122,7 +120,7 @@ public class FilePortal {
      * Get token and start uploading the file.
      *
      * @param context          current context.
-     * @param uid              Unique uid of the user who is to access the file.
+     * @param uid              current user id.
      * @param apiKey           Registered api key for Marvel File System.
      * @param file             The file to upload.
      * @param accessVerify     Weather token is needed to access the file.
@@ -147,7 +145,7 @@ public class FilePortal {
                 onFailureCallback(callback, new NoTokenException());
             } else {
                 String fileMD5 = Utils.md5(file);//todo 是否会遇到OOM
-                final boolean serverCached = preUpload(token, fileMD5, callback);
+                final boolean serverCached = preUpload(token, fileMD5, accessVerify, mode, callback);
                 //No cache in the backend server.Then do upload.
                 if (!serverCached) {
                     doUpload(file, fileMD5, token, accessVerify, mode, callback, progressListener);
@@ -163,17 +161,19 @@ public class FilePortal {
      * Check before do upload task.
      * If the same file has been uploaded,we'll get a url.Otherwise ret_code != 200,start upload.
      *
-     * @param token    token.
-     * @param callback FileUploadResultCallback.
-     * @param fileMD5  The MD5 hash which will be used to check if the file has exists on backend server of the file.
+     * @param token        token.
+     * @param callback     FileUploadResultCallback.
+     * @param fileMD5      The MD5 hash which will be used to check if the file has exists on backend server of the file.
+     * @param accessVerify Weather token is needed to access the file.
+     * @param mode         The strategy of keeping files.
      * @return Weather the same file has benn uploaded.
      */
-    private boolean preUpload(final String token, final String fileMD5, @Nullable final FileUploadResultCallback callback) {
+    private boolean preUpload(final String token, final String fileMD5, final String accessVerify, String mode, @Nullable final FileUploadResultCallback callback) {
         RequestBody requestBody = new FormBody.Builder()
                 .add(NET_KEY_MD5, fileMD5)
                 .add(NET_KEY_TOKEN, token)
-                .add(NET_KEY_MODE, MODE_STAY)
-                .add(NET_KEY_ACCESS, ACCESS_VERIFY)
+                .add(NET_KEY_ACCESS, accessVerify)
+                .add(NET_KEY_MODE, mode)
                 .build();
         Request request = new Request.Builder()
                 .url(Constants.API_PRE_UPLOAD)
@@ -297,9 +297,10 @@ public class FilePortal {
     }
 
     /**
-     * Get cached token for shared preference.
+     * Get cached token form shared preference.
      *
      * @param context current context。
+     * @param uid     The unique uid of current user.
      * @return Provide cached token if not null and not outdated.
      */
     private String getTokenFromLocal(@NonNull final Context context, String uid) {

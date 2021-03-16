@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "dcz";
 
-    private static final String UID = "1000";
+    private static final String UID = "2000";
 
     private static final int REQUEST_CODE_CHOOSE_PIC_FROM_GALLERY = 100;
 
@@ -62,7 +62,10 @@ public class MainActivity extends AppCompatActivity {
             startActivity(i);
         });
         binding.btnUpload.setOnClickListener(v -> upload());
-        FilePortal.getInstance().getToken(this, UID, FILE_SYSTEM_API_KEY, token -> MainActivity.this.token = token);
+        FilePortal.getInstance().getToken(this, UID, FILE_SYSTEM_API_KEY, token -> {
+            MainActivity.this.token = token;
+            Log.e(TAG, "token:" + token);
+        });
     }
 
     /**
